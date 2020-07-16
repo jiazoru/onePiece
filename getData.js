@@ -26,6 +26,7 @@ function downLoadUrl({
                 let r1 = await Ut.downImg({
                     url: `${mhService}/${imgUrl}`
                 }, fileUrl);
+                console.log(r1);
                 reslove(res);
 
             }

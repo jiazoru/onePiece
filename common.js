@@ -1,6 +1,8 @@
-let request = require("request");
 let fs = require("fs");
-let pathM = require("path")
+let pathM = require("path");
+var request = require('request');
+var http = require('http');
+var url = require('url');
 
 class Ut {
     /**
@@ -51,29 +53,40 @@ class Ut {
     }
     static downImg(opts = {}, path = '') {
         return new Promise(async (resolve, reject) => {
-            let arr = path.split('/');
-            arr.pop();
-            let dir = arr.join('/')
-            await this.dirExists(dir)
-            request
-                .get(opts)
-                .on('response', (response) => {
-                    console.log("img type:", response.headers['content-type'])
+            setTimeout(async () => {
+                let arr = path.split('/');
+                arr.pop();
+                let dir = arr.join('/')
+                await this.dirExists(dir)
+                let writeStream = fs.createWriteStream(path);
+                let readStream = request(opts.url);
+                readStream.pipe(writeStream);
+                readStream.on('end', function () {
+                    readStream.end();
+                    resolve("success");
+                    // console.log(`文件下载成功${fileDownloadPath}`);
+                });
+                readStream.on('error', function (error) {
+                    writeStream.end();
+                    fs.unlinkSync(fileDownloadPath);
+                    // console.log(`错误信息:${error}`);
+                    // 下载失败的，重新下载TODO
+                    readStream.end();
+                    resolve("fail");
+                    // setTimeout(() => {
+                    //     bagpipe.push(downloadFile, imgPath, function (err, data) {});
+                    // }, 5000);
                 })
-                .pipe(fs.createWriteStream(path))
-                .on("error", (e) => {
-                    console.log("pipe error", e)
-                    resolve('');
-                })
-                .on("finish", () => {
-                    console.log("finish");
-                    resolve("ok");
-                })
-                .on("close", () => {
-                    console.log(111);
-                    console.log("close");
-                })
-
+                writeStream.on("finish", function () {
+                        readStream.end();
+                        writeStream.end();
+                    })
+                    .on('error', function (err) {
+                        readStream.end();
+                        writeStream.end();
+                        // console.log(`文件写入失败}`);
+                    });
+            }, 400)
         })
     };
 }
